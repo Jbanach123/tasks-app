@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# Vercel local project link (contains your team/project IDs — not secret, just not useful to others)
+.vercel
+
+# Environment variables — this project doesn't use any yet, but ignore by
+# default so a future .env with real secrets never gets committed by accident
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS clutter
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
