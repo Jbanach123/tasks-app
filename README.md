@@ -3,7 +3,7 @@
 A personal habit & task tracker built as an installable PWA. Unlike typical reminder apps, it distinguishes between tasks with a fixed schedule, tasks with no schedule at all, and one-off tasks with a deadline — and logs how many times each was actually completed, per month.
 
 <p align="center">
-  <img src="preview.gif" alt="App demo" widrh="300">
+  <img src="preview.gif" alt="App demo" widrh="200">
 </p>
 
 ## Features
