@@ -14,6 +14,18 @@ export const dateKey = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad
 // JS's Date.getDay() is Sunday-first (0-6); we want Monday-first (0-6) to match DAY_LABELS
 export const mondayIndex = (d) => (d.getDay() === 0 ? 6 : d.getDay() - 1);
 
+// Returns the Monday of the week containing the given date.
+export const getWeekStart = (dateObj) => {
+  const d = new Date(dateObj);
+  const day = d.getDay(); // Sunday = 0, Monday = 1, ..., Saturday = 6
+  const diff = day === 0 ? -6 : 1 - day;
+
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+
+  return d;
+};
+
 // "2026-08-07" -> "07.08.2026" for display
 export const fmtShort = (dateStr) => {
   const [y, m, d] = dateStr.split("-");
@@ -51,14 +63,47 @@ export function isDueOnDate(task, dateObj) {
 export function isRelevantOnDay(task, dateObj, dateKeyStr, completions, todayKey) {
   if (task.kind === "oneoff") {
     const doneEver = (completions[task.id] || []).length > 0;
+
     if (!task.dueDate) {
-      // No deadline set — just sits on "today" until completed, doesn't anchor to any past day
+      // No deadline set — just sits on "today" until completed,
+      // but remains visible on the day it was actually completed.
       if (dateKeyStr === todayKey) return !doneEver;
-      return (completions[task.id] || []).includes(dateKeyStr); // still show on the day it was actually completed
+      return (completions[task.id] || []).includes(dateKeyStr);
     }
-    if (dateKeyStr === todayKey) return !doneEver && task.dueDate <= todayKey; // overdue or due today, not yet done
-    return task.dueDate === dateKeyStr || (completions[task.id] || []).includes(dateKeyStr);
+
+    if (dateKeyStr === todayKey) {
+      return !doneEver && task.dueDate <= todayKey;
+    }
+
+    return task.dueDate === dateKeyStr ||
+      (completions[task.id] || []).includes(dateKeyStr);
   }
+
+  if (
+    task.kind === "recurring" &&
+    task.recurrence?.type === "timesPerWeek"
+  ) {
+    const completed = completions[task.id] || [];
+
+    const weekStart = getWeekStart(dateObj);
+    const weekStartKey = dateKey(weekStart);
+
+    const completedThisWeek = completed.filter(
+      (d) => d >= weekStartKey && d <= dateKeyStr
+    ).length;
+
+    // Keep the task visible on the exact day it was completed,
+    // so the UI can show it as checked.
+    const completedToday = completed.includes(dateKeyStr);
+
+    if (completedToday) {
+      return true;
+    }
+
+    // Hide it on subsequent days once the weekly target is reached.
+    return completedThisWeek < (task.recurrence.timesPerWeek || 1);
+  }
+
   return isDueOnDate(task, dateObj);
 }
 
