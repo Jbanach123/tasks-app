@@ -112,7 +112,14 @@ export function TaskEditor({ task, categories, isNew, onCancel, onSave, onDelete
     // Only keep the fields relevant to the selected kind — avoids stale
     // `recurrence`/`dueDate` leftovers if the user switched kind mid-edit
     if (kind === "recurring") {
-      base.recurrence = type === "weekdays" ? { type, days } : type === "timesPerWeek" ? { type, timesPerWeek } : { type: "daily" };
+      base.recurrence =
+        type === "weekdays"
+          ? { type, days }
+          : type === "timesPerWeek"
+            ? { type, timesPerWeek }
+            : type === "monthly"
+              ? { type: "monthly" }
+              : { type: "daily" };
       delete base.dueDate;
     } else if (kind === "oneoff") {
       base.dueDate = hasDueDate ? dueDate : null; // null = "do it someday", no specific deadline
@@ -208,7 +215,7 @@ export function TaskEditor({ task, categories, isNew, onCancel, onSave, onDelete
           <>
             <label className="text-xs rt-dim-45 mb-2 block">Częstotliwość</label>
             <div className="flex rounded-xl p-1 mb-4" style={{ background: "rgba(255,255,255,0.05)" }}>
-              {[["daily", "Codziennie"], ["weekdays", "Dni tyg."], ["timesPerWeek", "X / tydzień"]].map(([key, label]) => (
+              {[["daily", "Codziennie"], ["weekdays", "Dni tyg."], ["timesPerWeek", "X / tydzień"], ["monthly", "Raz w miesiącu"]].map(([key, label]) => (
                 <button key={key} onClick={() => setType(key)} className="flex-1 py-2 rounded-lg text-xs font-medium transition-colors"
                   style={{ background: type === key ? "rgba(255,255,255,0.12)" : "transparent", color: type === key ? THEME.text : "rgba(242,245,243,0.45)" }}>
                   {label}

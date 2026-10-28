@@ -103,7 +103,26 @@ export function isRelevantOnDay(task, dateObj, dateKeyStr, completions, todayKey
     // Hide it on subsequent days once the weekly target is reached.
     return completedThisWeek < (task.recurrence.timesPerWeek || 1);
   }
+  if (
+    task.kind === "recurring" &&
+    task.recurrence?.type === "monthly"
+  ) {
+    const completed = completions[task.id] || [];
+    const currentMonth = dateKeyStr.slice(0, 7);
 
+    // Keep the task visible on the day it was completed.
+    if (completed.includes(dateKeyStr)) {
+      return true;
+    }
+
+    // Check whether it was completed earlier in the viewed month.
+    const completedThisMonth = completed.some(
+      (d) => d.startsWith(currentMonth) && d < dateKeyStr
+    );
+
+    // Hide it on subsequent days after completion.
+    return !completedThisMonth;
+  }
   return isDueOnDate(task, dateObj);
 }
 
@@ -137,6 +156,8 @@ export function monthlyTarget(task, y, m, count) {
     }
     return Math.max(c, 1);
   }
+  if (rec.type === "monthly") return 1;
+
   // timesPerWeek: approximate using (days in month / 7) * weekly target
   return Math.max(Math.round((daysInMonth / 7) * (rec.timesPerWeek || 1)), 1);
 }
@@ -145,6 +166,37 @@ export function monthlyTarget(task, y, m, count) {
 // Today not being done yet does NOT break the streak — the day isn't "over" yet.
 export function computeStreak(task, completions) {
   if (task.kind === "oneoff") return null; // streaks don't apply to one-off tasks
+
+  // Monthly tasks: count consecutive months with a completion.
+  if (task.recurrence?.type === "monthly") {
+    const completedMonths = new Set(
+      (completions[task.id] || []).map((d) => d.slice(0, 7))
+    );
+
+    const now = new Date();
+    let cursor = new Date(now.getFullYear(), now.getMonth(), 1);
+    const currentMonth = dateKey(cursor).slice(0, 7);
+    let streak = 0;
+
+    // An incomplete current month does not break the streak yet.
+    if (!completedMonths.has(currentMonth)) {
+      cursor.setMonth(cursor.getMonth() - 1);
+    }
+
+    for (let i = 0; i < 120; i++) {
+      const monthKey = dateKey(cursor).slice(0, 7);
+
+      if (completedMonths.has(monthKey)) {
+        streak++;
+        cursor.setMonth(cursor.getMonth() - 1);
+      } else {
+        break;
+      }
+    }
+
+    return streak;
+  }
+
   const done = new Set(completions[task.id] || []);
   const cursor = new Date();
   let streak = 0;
@@ -169,5 +221,7 @@ export function kindLabel(task) {
     if (!rec.days || rec.days.length === 0) return "Wybierz dni";
     return rec.days.slice().sort((a, b) => a - b).map((i) => DAY_LABELS[i]).join(" · ");
   }
+  if (rec.type === "monthly") return "Raz w miesiącu";
+
   return `${rec.timesPerWeek || 1}× w tygodniu`;
 }
